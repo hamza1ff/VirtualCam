@@ -1,3 +1,4 @@
+
 name: Build and sign VirtualCam APK
 
 on:
@@ -10,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       JAVA_TOOL_OPTIONS: -Xmx3g
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,7 +35,7 @@ jobs:
           cmdline-tools-version: 12266719
           accept-android-sdk-licenses: true
           log-accepted-android-sdk-licenses: true
-          packages: "platform-tools;build-tools;33.0.2;platforms;android-33"
+          packages: tools platform-tools
 
       - name: Decode keystore (safe runtime check)
         run: |
@@ -45,7 +47,7 @@ jobs:
             ls -al release-keystore.jks
           fi
 
-      - name: Build release APK (use installed gradle)
+      - name: Build release APK
         run: |
           gradle --no-daemon clean assembleRelease
 
@@ -82,3 +84,4 @@ jobs:
         with:
           name: VirtualCam-apk
           path: out/VirtualCam-release-signed.apk
+
