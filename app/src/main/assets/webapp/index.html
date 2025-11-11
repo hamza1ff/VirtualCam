@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>VirtualCam demo</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem }
+    video { width: 100%; max-width: 640px; background: #111 }
+    #logs { margin-top: 1rem; font-size: 0.9rem }
+    @keyframes subtle {
+      0% { filter: brightness(0.98); transform: translateY(0px); }
+      50% { filter: brightness(1.02); transform: translateY(-1px); }
+      100% { filter: brightness(0.98); transform: translateY(0px); }
+    }
+    video { animation: subtle 3s infinite ease-in-out }
+  </style>
+</head>
+<body>
+  <h2>VirtualCam — Web demo (WebView)</h2>
+  <p>This page requests camera access; the app injects a virtual camera stream from an image you pick.</p>
+  <video id="v" autoplay playsinline></video>
+  <div id="logs"></div>
+  <button id="pick">Pick Image (via App)</button>
+
+  <script>
+    async function log(msg) {
+      const el = document.getElementById('logs')
+      el.textContent += '\n' + msg
+    }
+
+    document.getElementById('pick').onclick = () => {
+      if (window.AndroidBridge && window.AndroidBridge.requestPickImage) {
+        window.AndroidBridge.requestPickImage();
+      } else {
+        log('AndroidBridge not found')
+      }
+    }
+
+    async function start() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+        const v = document.getElementById('v')
+        v.srcObject = stream
+        log('Stream started: ' + stream.getVideoTracks().length + ' video tracks')
+      } catch (e) {
+        log('getUserMedia error: ' + e.message)
+      }
+    }
+
+    start()
+  </script>
+</body>
+</html>
