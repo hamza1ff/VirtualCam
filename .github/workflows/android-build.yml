@@ -20,6 +20,13 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
 
+      - name: Install SDKMAN and Gradle 8.1.1
+        run: |
+          curl -s "https://get.sdkman.io" | bash
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sdk install gradle 8.1.1
+          gradle -v
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -32,13 +39,21 @@ jobs:
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release-keystore.jks
           ls -al release-keystore.jks
 
-      - name: Build release APK
-        run: ./gradlew clean assembleRelease --no-daemon
+      - name: Build release APK (use installed gradle)
+        run: |
+          gradle --no-daemon clean assembleRelease
 
       - name: Align APK
         run: |
           mkdir -p out
-          zipalign -v -p 4 app/build/outputs/apk/release/app-release-unsigned.apk aligned-unsigned.apk
+          ZIP_PATH="app/build/outputs/apk/release/app-release-unsigned.apk"
+          if [ -f "$ZIP_PATH" ]; then
+            zipalign -v -p 4 "$ZIP_PATH" aligned-unsigned.apk
+          else
+            ls -R app/build || true
+            echo "Unsigned APK not found at $ZIP_PATH"
+            exit 1
+          fi
 
       - name: Sign APK
         run: |
