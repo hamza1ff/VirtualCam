@@ -33,11 +33,61 @@ jobs:
           api-level: 33
           build-tools: '33.0.2'
 
-      - name: Decode keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      - name: Decode keystore (safe runtime check)
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release-keystore.jks
-          ls -al release-keystore.jks
+          # إذا لم يُعرَّف SECRET فلن نُحاول فك التشفير
+          if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "KEYSTORE_BASE64 secret_
+
+
+cd ~/VirtualCamProject
+
+cat > .github/workflows/android-build.yml <<'YAML'
+name: Build and sign VirtualCam APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      JAVA_TOOL_OPTIONS: -Xmx3g
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Install SDKMAN and Gradle 8.1.1
+        run: |
+          curl -s "https://get.sdkman.io" | bash
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sdk install gradle 8.1.1
+          gradle -v
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 33
+          build-tools: '33.0.2'
+
+      - name: Decode keystore (safe runtime check)
+        run: |
+          # إذا لم يُعرَّف SECRET فلن نُحاول فك التشفير
+          if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "KEYSTORE_BASE64 secret is empty — skipping keystore decode"
+          else
+            echo "Decoding keystore from secret..."
+            printf '%s' "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release-keystore.jks
+            ls -al release-keystore.jks
+          fi
 
       - name: Build release APK (use installed gradle)
         run: |
@@ -57,6 +107,10 @@ jobs:
 
       - name: Sign APK
         run: |
+          if [ ! -f release-keystore.jks ]; then
+            echo "Keystore not found; cannot sign APK"
+            exit 1
+          fi
           apksigner sign \
             --ks release-keystore.jks \
             --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
